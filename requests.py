@@ -14,7 +14,12 @@ def getRouteData(route_number):
 
     for x in route['bus']:
         if(x['Direction'] == "Eastbound" and x['label'] != 0):
-            temp_dict = {"trolley"+str(i):{"trolleyID":x["label"], "lateTime": x["late"], "tripID": x["trip"],"direction":x["Direction"]}}
+            temp_dict = {"route_"+str(route_number)+"_trolley_"+str(i):{"trolleyID":x["label"], 
+                                           "lateTime": x["late"], 
+                                           "tripID": x["trip"],
+                                           "direction":x["Direction"],
+                                           "blockID":x["BlockID"]
+                                           }}
             route_dict.update(temp_dict)
             i += 1
     
