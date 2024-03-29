@@ -289,7 +289,7 @@ def update_display():
         trolley_labels.append(label)
 
     # Schedule the next update after 1 minute (60000 milliseconds)
-    popup.after(10000, update_display)
+    popup.after(25000, update_display)
 
 # Initially populate and start updating the display
 refresh_time = datetime.datetime.now()
