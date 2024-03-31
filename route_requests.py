@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import requests
 import json
 from collections import OrderedDict
@@ -8,7 +10,6 @@ import datetime
 from dateutil.parser import parse
 import math
 import tkinter as tk
-
 
 def getRouteDatabyRoute(route_number:int):
     request_url = "https://www3.septa.org/api/TransitView/index.php?route="+str(route_number)
@@ -86,8 +87,11 @@ def getAllRouteData():
                                 "distance":(geopy.distance.geodesic((stop_lat,stop_lng), (y['lat'], y['lng'])).km),
                                 "dist_arrival":math.floor((3*geopy.distance.geodesic((stop_lat,stop_lng), (y['lat'], y['lng'])).km))
                                 }}
+                            if(temp_dict["route_"+y['route_id']+"_trolley_"+str(i)]["route_id"]=="36" or 
+                               temp_dict["route_"+y['route_id']+"_trolley_"+str(i)]["route_id"]=="11"):
+                                temp_dict["route_"+y['route_id']+"_trolley_"+str(i)]["route_id"]="11&36"
                         route_dict.update(temp_dict)
-                        i += 1
+                        i += 1                  
     return route_dict
 
 def getTiming(trolley_dict):
@@ -123,58 +127,43 @@ def getTiming(trolley_dict):
 
 def nearestEachRoute(dict):
 
-    nearest = {}
+    # nearest = {}
+
+    # for key, trolley_info in dict.items():
+    #         route = trolley_info.get("route_id")
+    #         if route not in nearest:
+    #             nearest[route] = trolley_info
+    #         else:
+    #             if trolley_info["dist_arrival"] < nearest[route]["dist_arrival"]:
+    #                 nearest[route] = trolley_info
+
+    # desired_order = ['13', '11&36', '34']
+
+    # # Initialize a dictionary to store the nearest trolley for each route
+    # nearest_trolleys_ordered = {}
+
+    # # Iterate through each route in the desired order
+    # for route_id in desired_order:
+    #     # Check if the route has a nearest trolley
+    #     if route_id in nearest:
+    #         # Add the nearest trolley for this route to the ordered dictionary
+    #         nearest_trolleys_ordered[route_id] = nearest[route_id]
+
+    route_arrivals = {"13":[], "11&36":[], "34":[]}
 
     for key, trolley_info in dict.items():
-        if key.startswith("route_"):
-            route = trolley_info.get("route_id")
-            if route not in nearest:
-                nearest[route] = trolley_info
-            else:
-                if trolley_info["dist_arrival"] < nearest[route]["dist_arrival"]:
-                    nearest[route] = trolley_info
+        route = trolley_info.get("route_id")
+        if route == "13":
+            route_arrivals["13"].append(trolley_info.get("dist_arrival"))
+        elif route == "11&36":
+            route_arrivals["11&36"].append(trolley_info.get("dist_arrival"))
+        elif route == "34":
+            route_arrivals["34"].append(trolley_info.get("dist_arrival"))
 
-    desired_order = ['13', '11', '36', '34']
-
-    # Initialize a dictionary to store the nearest trolley for each route
-    nearest_trolleys_ordered = {}
-
-    # Iterate through each route in the desired order
-    for route_id in desired_order:
-        # Check if the route has a nearest trolley
-        if route_id in nearest:
-            # Add the nearest trolley for this route to the ordered dictionary
-            nearest_trolleys_ordered[route_id] = nearest[route_id]
+    for key, trolley_info in route_arrivals.items():
+        trolley_info = trolley_info.sort()
     
-    return nearest_trolleys_ordered
-
-#By TransitViewAll API call
-
-# all_transit = getTiming(OrderedDict(sorted(getAllRouteData().items(),
-#      key = lambda x: getitem(x[1],'distance'))))
-
-# all_transit['trolleyCount'] = len(all_transit)
-
-# with open('nearest.json', 'w') as f:
-#   json.dump(nearestEachRoute(all_transit), f, ensure_ascii=False)
-
-# nearestTrolleys = nearestEachRoute(getTiming(getAllRouteData()))
-
-# with open('nearestTrolleys.json', 'w') as f:
-#   json.dump(nearestTrolleys, f, ensure_ascii=False)
-
-# Create Tkinter window
-popup = tk.Tk()
-popup.title("Nearest Trolleys")
-popup.configure(bg='gray12')  # Set background color to black
-
-# Create labels for displaying trolley information
-custom_font = ("Overpass", 16, "bold")
-trolley_labels = []
-
-# Create label to display time since last refresh
-time_label = tk.Label(popup, text="", font=("Overpass", 10), fg='lime green', bg='gray12')
-time_label.pack(pady=5)  # Pack the time label initially
+    return route_arrivals
 
 def update_time():
     current_time = datetime.datetime.now()
@@ -182,10 +171,14 @@ def update_time():
 
     popup.after(1000, update_time)  # Schedule the update_time function to run every second
 
-
 def update_display():
     global refresh_time
-    nearestTrolleys = nearestEachRoute(getTiming(getAllRouteData()))
+
+    nearestTrolleys = nearestEachRoute(getAllRouteData())
+
+    # with open('nearestTrolleys.json', 'w') as f:
+    #     json.dump(nearestTrolleys, f, ensure_ascii=False)
+
     refresh_time = datetime.datetime.now()
 
     # Update trolley information labels
@@ -193,20 +186,33 @@ def update_display():
         label.destroy()
     trolley_labels.clear()
 
-    for route, data in nearestTrolleys.items():
-        label = tk.Label(popup, text=f"Route {data.get('route_id')} arriving in {data.get('dist_arrival')} minutes",
-                         font=custom_font, fg='lime green', bg='gray12', anchor='w')
-        label.pack(pady=10, padx=10, fill='x')
-        trolley_labels.append(label)
+    for key, route in nearestTrolleys.items():
+        if(len(route)) != 0:
+            label = tk.Label(popup, text=f"Route {key} arriving in {str(route)[1:-1]} minutes",
+                            font=custom_font, fg='lime green', bg='gray12', anchor='w')
+            label.pack(pady=10, padx=10, fill='x')
+            trolley_labels.append(label)
 
     # Schedule the next update after 1 minute (60000 milliseconds)
-    popup.after(25000, update_display)
+    popup.after(20000, update_display)
 
-# Initially populate and start updating the display
-refresh_time = datetime.datetime.now()
-update_display()
-update_time()
+if __name__ == "__main__":
+    # Create Tkinter window
+    popup = tk.Tk()
+    popup.title("Nearest Trolleys")
+    popup.configure(bg='gray12')  # Set background color to black
+    custom_font = ("Overpass", 48, "bold")
 
-# Run the Tkinter event loop
-popup.mainloop()
+    trolley_labels = []
 
+    # Create label to display time since last refresh
+    time_label = tk.Label(popup, text="", font=("Overpass", 18), fg='lime green', bg='gray12')
+    time_label.pack(side = "bottom", pady=5)  # Pack the time label initially
+
+    # Initially populate and start updating the display
+    refresh_time = datetime.datetime.now()
+    update_display()
+    update_time()
+
+    # Run the Tkinter event loop
+    popup.mainloop()
