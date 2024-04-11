@@ -10,6 +10,12 @@ import datetime
 from dateutil.parser import parse
 import math
 import tkinter as tk
+from ctypes import windll
+import platform
+
+
+if platform.system() == "Windows":
+    windll.shcore.SetProcessDpiAwareness(1)
 
 def getRouteDatabyRoute(route_number:int):
     request_url = "https://www3.septa.org/api/TransitView/index.php?route="+str(route_number)
@@ -167,7 +173,7 @@ def nearestEachRoute(dict):
 
 def update_time():
     current_time = datetime.datetime.now()
-    time_label.config(text=f"Last refreshed: {round((current_time - refresh_time).total_seconds())} seconds ago")
+    time_label.config(text=f"Refreshed: {round((current_time - refresh_time).total_seconds())} seconds ago")
 
     popup.after(1000, update_time)  # Schedule the update_time function to run every second
 
@@ -188,7 +194,7 @@ def update_display():
 
     for key, route in nearestTrolleys.items():
         if(len(route)) != 0:
-            label = tk.Label(popup, text=f"Route {key} arriving in {str(route)[1:-1]} minutes",
+            label = tk.Label(popup, text=f"Route {key}: in {str(route)[1:-1]}'",
                             font=custom_font, fg='lime green', bg='gray12', anchor='w')
             label.pack(pady=10, padx=10, fill='x')
             trolley_labels.append(label)
